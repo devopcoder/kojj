@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE RP EXPLOITER</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #ff1a1a;
+    --red-dim: #991010;
+    --dark: #0a0a0a;
+    --darker: #050505;
+    --panel: #111111;
+    --border: #2a0000;
+    --border-hot: #ff1a1a;
+    --text: #e8e8e8;
+    --muted: #666;
+    --green: #00ff88;
+    --yellow: #ffcc00;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--darker);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      linear-gradient(rgba(255,26,26,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,26,26,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== PAGES ===== */
+  .page { display: none; position: relative; z-index: 1; }
+  .page.active { display: block; }
+
+  /* ===== HEADER ===== */
+  .site-header {
+    background: var(--panel);
+    border-bottom: 2px solid var(--red);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 0 30px rgba(255,26,26,0.2);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 4px;
+    color: var(--red);
+    text-shadow: 0 0 20px rgba(255,26,26,0.6);
+    position: relative;
+  }
+
+  .logo span { color: var(--text); }
+
+  .logo::after {
+    content: 'v2.4.1';
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.5rem;
+    color: var(--muted);
+    position: absolute;
+    bottom: 2px;
+    right: -28px;
+    letter-spacing: 1px;
+  }
+
+  .header-nav {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .nav-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 16px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover, .nav-btn.active {
+    border-color: var(--red);
+    color: var(--red);
+    background: rgba(255,26,26,0.08);
+    box-shadow: 0 0 12px rgba(255,26,26,0.2);
+  }
+
+  /* ===== FORM PAGE ===== */
+  .form-container {
+    max-width: 600px;
+    margin: 4rem auto;
+    padding: 0 1rem;
+    animation: fadeSlide 0.5s ease;
+  }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .form-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    letter-spacing: 8px;
+    color: var(--red);
+    text-shadow: 0 0 40px rgba(255,26,26,0.5);
+    line-height: 1;
+  }
+
+  .form-header p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 3px;
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+  }
+
+  .form-header .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 1rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--green);
+    letter-spacing: 2px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .form-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--red);
+    padding: 2rem;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+
+  .form-box::before {
+    content: '[ REGISTRATION FORM ]';
+    position: absolute;
+    top: -11px;
+    left: 20px;
+    background: var(--panel);
+    padding: 0 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--red);
+    letter-spacing: 2px;
+  }
+
+  .field-group {
+    margin-bottom: 1.5rem;
+  }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  label span {
+    color: var(--red);
+    margin-left: 2px;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--darker);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s;
+    appearance: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 2px rgba(255,26,26,0.15), 0 0 20px rgba(255,26,26,0.1);
+    background: #0d0000;
+  }
+
+  input::placeholder {
+    color: #333;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  input[readonly] {
+    background: #1a1a1a;
+    color: var(--green);
+    font-weight: 600;
+    cursor: not-allowed;
+  }
+
+  .input-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: #444;
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  .geo-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--green);
+    margin-top: 4px;
+  }
+
+  .geo-loading {
+    color: var(--yellow);
+  }
+
+  .geo-error {
+    color: var(--red);
+  }
+
+  .submit-btn {
+    width: 100%;
+    background: var(--red);
+    border: none;
+    color: white;
+    padding: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.5s;
+  }
+
+  .submit-btn:hover { background: #cc0000; box-shadow: 0 0 30px rgba(255,26,26,0.4); }
+  .submit-btn:hover::before { left: 100%; }
+  .submit-btn:active { transform: scale(0.99); }
+  .submit-btn:disabled {
+    background: var(--red-dim);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* Success toast */
+  .toast {
+    position: fixed;
+    top: 80px; right: 20px;
+    background: #001a09;
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 12px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    z-index: 9000;
+    display: none;
+    box-shadow: 0 0 20px rgba(0,255,136,0.2);
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  /* ===== ADMIN LOGIN PAGE ===== */
+  .login-container {
+    max-width: 400px;
+    margin: 6rem auto;
+    padding: 0 1rem;
+    animation: fadeSlide 0.4s ease;
+  }
+
+  .login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .login-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 6px;
+    color: var(--yellow);
+    text-shadow: 0 0 20px rgba(255,204,0,0.4);
+  }
+
+  .login-header p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .login-box {
+    background: var(--panel);
+    border: 1px solid #2a2000;
+    border-top: 3px solid var(--yellow);
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .login-box input {
+    margin-bottom: 1rem;
+  }
+
+  .login-btn {
+    width: 100%;
+    background: var(--yellow);
+    border: none;
+    color: #000;
+    padding: 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .login-btn:hover { background: #e6b800; box-shadow: 0 0 25px rgba(255,204,0,0.3); }
+
+  .login-error {
+    color: var(--red);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 0.75rem;
+    letter-spacing: 1px;
+    display: none;
+  }
+
+  .back-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+
+  .back-link:hover { color: var(--red); }
+
+  /* ===== ADMIN PANEL PAGE ===== */
+  .admin-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    animation: fadeSlide 0.4s ease;
+  }
+
+  .admin-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-topbar h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 4px;
+    color: var(--yellow);
+  }
+
+  .admin-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .refresh-timer {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--green);
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 4px 12px;
+  }
+
+  .logout-btn {
+    background: transparent;
+    border: 1px solid var(--red-dim);
+    color: var(--red);
+    padding: 6px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .logout-btn:hover { background: rgba(255,26,26,0.1); border-color: var(--red); }
+
+  /* Stats */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--red);
+    padding: 1rem 1.2rem;
+  }
+
+  .stat-card.green { border-left-color: var(--green); }
+  .stat-card.yellow { border-left-color: var(--yellow); }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  /* Table */
+  .table-wrapper {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--red);
+    overflow-x: auto;
+  }
+
+  .table-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .table-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--red);
+    letter-spacing: 2px;
+  }
+
+  .search-input {
+    background: var(--darker);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    outline: none;
+    width: 220px;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus { border-color: var(--red); }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead {
+    background: rgba(255,26,26,0.08);
+  }
+
+  th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  tr:hover td { background: rgba(255,26,26,0.04); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    font-weight: 700;
+  }
+
+  .badge-new { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .badge-old { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid #222; }
+
+  .del-btn {
+    background: transparent;
+    border: 1px solid #2a0000;
+    color: #660000;
+    padding: 3px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .del-btn:hover { border-color: var(--red); color: var(--red); background: rgba(255,26,26,0.08); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  .clear-btn {
+    background: transparent;
+    border: 1px solid #2a0000;
+    color: var(--red-dim);
+    padding: 6px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .clear-btn:hover { background: rgba(255,26,26,0.1); border-color: var(--red); color: var(--red); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--darker); }
+  ::-webkit-scrollbar-thumb { background: var(--red-dim); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--red); }
+
+  /* IP Info Display */
+  .ip-info {
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.2);
+    padding: 8px 12px;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+  }
+
+  .ip-info strong {
+    color: var(--green);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="logo">THE RP<span>EXPLOITER</span></div>
+  <nav class="header-nav">
+    <button class="nav-btn active" id="navForm" onclick="showPage('form')">REGISTER</button>
+    <button class="nav-btn" id="navAdmin" onclick="showPage('login')">ADMIN</button>
+  </nav>
+</header>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ ENTRY SUBMITTED SUCCESSFULLY</div>
+
+<!-- ===== FORM PAGE ===== -->
+<div class="page active" id="pageForm">
+  <div class="form-container">
+    <div class="form-header">
+      <h1>THE RP EXPLOITER</h1>
+      <p>ACCOUNT REGISTRATION PORTAL</p>
+      <div class="status-bar">
+        <div class="status-dot"></div>
+        SYSTEM ONLINE — ACCEPTING SUBMISSIONS
+      </div>
+    </div>
+
+    <div class="form-box">
+      <!-- IP & GEO INFO DISPLAY (STEALTH) -->
+      <div class="ip-info" id="ipInfo" style="display:none;">
+        <strong></strong>
+      </div>
+
+      <div class="field-group">
+        <label>Name of RP Account <span>*</span></label>
+        <input type="text" id="f_name" placeholder="e.g. xX_DarkHunter_Xx" maxlength="50" />
+        <div class="input-hint">// your roleplay username or alias</div>
+      </div>
+
+      <div class="field-group">
+        <label>Age <span>*</span></label>
+        <input type="number" id="f_age" placeholder="18" min="13" max="99" />
+        <div class="input-hint">// must be 13 or older to register</div>
+      </div>
+
+      <div class="field-group">
+        <label>Email Address <span>*</span></label>
+        <input type="email" id="f_email" placeholder="user@example.com" />
+        <div class="input-hint">// dummy/burner emails accepted</div>
+      </div>
+
+      <!-- HIDDEN GEO FIELDS (for storage) -->
+      <input type="hidden" id="f_ip" />
+      <input type="hidden" id="f_country" />
+      <input type="hidden" id="f_region" />
+      <input type="hidden" id="f_city" />
+      <input type="hidden" id="f_lat" />
+      <input type="hidden" id="f_lon" />
+      <input type="hidden" id="f_timezone" />
+
+      <button class="submit-btn" id="submitBtn" onclick="submitForm()">⚡ SUBMIT REGISTRATION</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN LOGIN PAGE ===== -->
+<div class="page" id="pageLogin">
+  <div class="login-container">
+    <div class="login-header">
+      <h2>⚠ ADMIN ACCESS</h2>
+      <p>AUTHORIZED PERSONNEL ONLY</p>
+    </div>
+    <div class="login-box">
+      <label>Username</label>
+      <input type="text" id="l_user" placeholder="admin" />
+      <label>Password</label>
+      <input type="password" id="l_pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+      <button class="login-btn" onclick="doLogin()">🔓 ACCESS PANEL</button>
+      <div class="login-error" id="loginErr">⛔ INVALID CREDENTIALS</div>
+    </div>
+    <div class="back-link" onclick="showPage('form')">← BACK TO REGISTRATION</div>
+  </div>
+</div>
+
+<!-- ===== ADMIN PANEL PAGE ===== -->
+<div class="page" id="pageAdmin">
+  <div class="admin-container">
+    <div class="admin-topbar">
+      <h2>⚡ ADMIN PANEL</h2>
+      <div class="admin-meta">
+        <div class="refresh-timer">
+          <div class="status-dot"></div>
+          AUTO-REFRESH: <span id="countdown">30</span>s
+        </div>
+        <button class="clear-btn" onclick="clearAll()">🗑 CLEAR ALL</button>
+        <button class="logout-btn" onclick="doLogout()">LOGOUT</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Entries</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">New (last 24h)</div>
+        <div class="stat-value" id="statNew">0</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-label">Last Refresh</div>
+        <div class="stat-value" style="font-size:1rem; margin-top:6px;" id="statTime">—</div>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <div class="table-controls">
+        <span class="table-title">[ REGISTERED ACCOUNTS ]</span>
+        <input class="search-input" type="text" placeholder="Search entries..." oninput="renderTable(this.value)" />
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>RP Account</th>
+            <th>Age</th>
+            <th>Email</th>
+            <th>IP Address</th>
+            <th>Location</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty-state">// NO ENTRIES FOUND</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== DATA =====
+  const ADMIN_USER = 'admin';
+  const ADMIN_PASS = 'admin123';
+  let isLoggedIn = false;
+  let entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
+  let countdownVal = 30;
+  let countdownInterval = null;
+  let searchVal = '';
+  let visitorIP = '';
+  let visitorGeo = {};
+
+  // ===== IP & GEOLOCATION DETECTION (STEALTH) =====
+  async function detectIPGeo() {
+    const submitBtn = document.getElementById('submitBtn');
+    
+    try {
+      // Get real IP from ipapi.co (free, no API key needed)
+      const ipResponse = await fetch('https://ipapi.co/json/');
+      const ipData = await ipResponse.json();
+      
+      visitorIP = ipData.ip || 'Unknown';
+      
+      // Get detailed geolocation
+      const geoResponse = await fetch(`https://ipapi.co/${visitorIP}/json/`);
+      visitorGeo = await geoResponse.json();
+      
+      // Fill hidden fields silently
+      document.getElementById('f_ip').value = visitorIP;
+      document.getElementById('f_country').value = visitorGeo.country_name || '';
+      document.getElementById('f_region').value = visitorGeo.region || '';
+      document.getElementById('f_city').value = visitorGeo.city || '';
+      document.getElementById('f_lat').value = visitorGeo.latitude || '';
+      document.getElementById('f_lon').value = visitorGeo.longitude || '';
+      document.getElementById('f_timezone').value = visitorGeo.timezone || '';
+      
+      submitBtn.disabled = false;
+      
+    } catch (error) {
+      // Fallback: use ipify for IP + basic geo
+      try {
+        const fallbackIP = await fetch('https://api.ipify.org?format=json');
+        const ipData = await fallbackIP.json();
+        visitorIP = ipData.ip;
+        
+        document.getElementById('f_ip').value = visitorIP;
+        submitBtn.disabled = false;
+      } catch (e) {
+        // Even if geo fails, allow submission with partial data
+        submitBtn.disabled = false;
+      }
+    }
+  }
+
+  // ===== NAVIGATION =====
+  function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+    if (page === 'form') {
+      document.getElementById('pageForm').classList.add('active');
+      document.getElementById('navForm').classList.add('active');
+    } else if (page === 'login') {
+      if (isLoggedIn) { showPage('admin'); return; }
+      document.getElementById('pageLogin').classList.add('active');
+      document.getElementById('navAdmin').classList.add('active');
+      document.getElementById('loginErr').style.display = 'none';
+    } else if (page === 'admin') {
+      if (!isLoggedIn) { showPage('login'); return; }
+      document.getElementById('pageAdmin').classList.add('active');
+      document.getElementById('navAdmin').classList.add('active');
+      renderTable();
+      updateStats();
+      startCountdown();
+    }
+  }
+
+  // ===== FORM SUBMIT =====
+  function submitForm() {
+    const name = document.getElementById('f_name').value.trim();
+    const age = document.getElementById('f_age').value.trim();
+    const email = document.getElementById('f_email').value.trim();
+    const ip = document.getElementById('f_ip').value;
+
+    if (!name || !age || !email) {
+      alert('⚠ Please fill in all fields.');
+      return;
+    }
+
+    if (isNaN(age) || +age < 13 || +age > 99) {
+      alert('⚠ Age must be between 13–99.');
+      return;
+    }
+
+    const entry = {
+      id: Date.now(),
+      name,
+      age: +age,
+      email,
+      ip: ip || 'Unknown',
+      country: document.getElementById('f_country').value || '',
+      region: document.getElementById('f_region').value || '',
+      city: document.getElementById('f_city').value || '',
+      lat: document.getElementById('f_lat').value || '',
+      lon: document.getElementById('f_lon').value || '',
+      timezone: document.getElementById('f_timezone').value || '',
+      time: new Date().toISOString()
+    };
+
+    entries.unshift(entry);
+    localStorage.setItem('rp_entries', JSON.stringify(entries));
+
+    // Clear form
+    document.getElementById('f_name').value = '';
+    document.getElementById('f_age').value = '';
+    document.getElementById('f_email').value = '';
+
+    const toast = document.getElementById('toast');
+    toast.textContent = `✓ ENTRY SUBMITTED SUCCESSFULLY`;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+
+    // Refresh IP detection silently
+    setTimeout(detectIPGeo, 1000);
+  }
+
+  // ===== ADMIN LOGIN =====
+  function doLogin() {
+    const u = document.getElementById('l_user').value.trim();
+    const p = document.getElementById('l_pass').value.trim();
+
+    if (u === ADMIN_USER && p === ADMIN_PASS) {
+      isLoggedIn = true;
+      document.getElementById('loginErr').style.display = 'none';
+      document.getElementById('l_user').value = '';
+      document.getElementById('l_pass').value = '';
+      showPage('admin');
+    } else {
+      document.getElementById('loginErr').style.display = 'block';
+      document.getElementById('l_pass').value = '';
+    }
+  }
+
+  function doLogout() {
+    isLoggedIn = false;
+    clearInterval(countdownInterval);
+    showPage('form');
+  }
+
+  // ===== TABLE RENDER =====
+  function renderTable(filter) {
+    if (filter !== undefined) searchVal = filter.toLowerCase();
+    entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
+
+    const filtered = entries.filter(e =>
+      e.name.toLowerCase().includes(searchVal) ||
+      e.email.toLowerCase().includes(searchVal) ||
+      String(e.age).includes(searchVal) ||
+      e.ip.toLowerCase().includes(searchVal) ||
+      e.country.toLowerCase().includes(searchVal) ||
+      e.city.toLowerCase().includes(searchVal)
+    );
+
+    const tbody = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+    tbody.innerHTML = filtered.map((e, i) => {
+      const isNew = (Date.now() - e.id) < 86400000;
+      const dt = new Date(e.time);
+      const formatted = dt.toLocaleDateString('en-PH') + ' ' + dt.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+      const location = e.city ? `${e.city}, ${e.country}` : e.country || 'Unknown';
+      
+      return `<tr>
+        <td style="color:var(--muted)">${i + 1}</td>
+        <td style="color:var(--red)">${escHtml(e.name)}</td>
+        <td>${e.age}</td>
+        <td style="color:#aaa">${escHtml(e.email)}</td>
+        <td style="color:var(--green);font-weight:600">${escHtml(e.ip)}</td>
+        <td style="color:var(--yellow)">${escHtml(location)}</td>
+        <td style="color:var(--muted);font-size:0.7rem">${formatted}</td>
+        <td><span class="badge ${isNew ? 'badge-new' : 'badge-old'}">${isNew ? 'NEW' : 'OLD'}</span></td>
+        <td><button class="del-btn" onclick="deleteEntry(${e.id})">DEL</button></td>
+      </tr>`;
+    }).join('');
+
+    updateStats();
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function deleteEntry(id) {
+    if (!confirm('Delete this entry?')) return;
+    entries = entries.filter(e => e.id !== id);
+    localStorage.setItem('rp_entries', JSON.stringify(entries));
+    renderTable();
+  }
+
+  function clearAll() {
+    if (!confirm('⚠ Clear ALL entries? This cannot be undone.')) return;
+    entries = [];
+    localStorage.setItem('rp_entries', '[]');
+    renderTable();
+  }
+
+  // ===== STATS =====
+  function updateStats() {
+    entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
+    const newCount = entries.filter(e => (Date.now() - e.id) < 86400000).length;
+    document.getElementById('statTotal').textContent = entries.length;
+    document.getElementById('statNew').textContent = newCount;
+    const now = new Date();
+    document.getElementById('statTime').textContent =
+      now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  // ===== COUNTDOWN / AUTO-REFRESH =====
+  function startCountdown() {
+    clearInterval(countdownInterval);
+    countdownVal = 30;
+    document.getElementById('countdown').textContent = countdownVal;
+
+    countdownInterval = setInterval(() => {
+      countdownVal--;
+      document.getElementById('countdown').textContent = countdownVal;
+      if (countdownVal <= 0) {
+        countdownVal = 30;
+        renderTable();
+        updateStats();
+      }
+    }, 1000);
+  }
+
+  // ===== INIT =====
+  window.addEventListener('load', () => {
+    detectIPGeo();
+    showPage('form');
+  });
+</script>
+</body>
+</html>
